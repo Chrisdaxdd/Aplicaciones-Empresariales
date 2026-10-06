@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutbolManager - Formulario de Jugador (REST API)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="bg-light">
+
+    <!-- Barra de Navegación -->
+    <div th:replace="~{fragments/navbar :: navbar('jugadores')}"></div>
+
+    <main class="container my-5" style="max-width: 700px;">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-info text-white py-3">
+                <h4 class="mb-0 fw-bold">
+                    <i class="bi bi-person-plus-fill me-2"></i>
+                    <span id="formTitulo">Registrar Futbolista (vía POST /api/jugadores)</span>
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <div id="alertaError" class="alert alert-danger d-none" role="alert"></div>
+
+                <form id="formJugador" onsubmit="guardarJugador(event)">
+                    <input type="hidden" id="jugadorId" th:value="${jugadorId}" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="nombre" class="form-label fw-bold">Nombre <span class="text-danger">*</span></label>
+                            <input type="text" id="nombre" class="form-control" required placeholder="Ej. Radamel, David, Lionel" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="apellido" class="form-label fw-bold">Apellido <span class="text-danger">*</span></label>
+                            <input type="text" id="apellido" class="form-control" required placeholder="Ej. Falcao, Silva, Messi" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="numero" class="form-label fw-bold">Dorsal / Número <span class="text-danger">*</span></label>
+                            <input type="number" id="numero" class="form-control" min="1" max="99" required placeholder="1 al 99" value="10" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="posicion" class="form-label fw-bold">Posición Táctica <span class="text-danger">*</span></label>
+                            <select id="posicion" class="form-select" required>
+                                <option value="">-- Seleccionar Posición --</option>
+                                <option value="Portero">Portero</option>
+                                <option value="Defensa">Defensa</option>
+                                <option value="Mediocampista">Mediocampista</option>
+                                <option value="Delantero">Delantero</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Asignación de Club -->
+                    <div class="mb-4">
+                        <label for="clubId" class="form-label fw-bold">
+                            <i class="bi bi-shield-shaded text-success me-1"></i> Asignar a Club (@DocumentReference)
+                        </label>
+                        <select id="clubId" class="form-select">
+                            <option value="">-- Agente Libre / Sin Club --</option>
+                        </select>
+                        <div class="form-text">Asigna este futbolista a la lista de jugadores del club seleccionado.</div>
+                    </div>
+
+                    <div class="d-flex justify-content-between pt-3 border-top">
+                        <a th:href="@{/jugadores}" class="btn btn-outline-secondary px-4">
+                            <i class="bi bi-arrow-left me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" id="btnGuardar" class="btn btn-info text-white px-4 fw-bold">
+                            <i class="bi bi-save me-1"></i> <span id="btnTexto">Guardar vía POST /api/jugadores</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const idEdicion = document.getElementById('jugadorId').value;
+        let clubIdOriginal = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await cargarClubes();
+
+            if (idEdicion && idEdicion !== 'null') {
+                document.getElementById('formTitulo').innerText = `Editar Futbolista #${idEdicion} (vía PUT /api/jugadores/${idEdicion})`;
+                document.getElementById('btnTexto').innerText = `Actualizar vía PUT /api/jugadores/${idEdicion}`;
+                cargarDatosJugador(idEdicion);
+            }
+        });
+
+        async function cargarClubes() {
+            const res = await fetch('/api/clubes');
+            const data = await res.json();
+            const sel = document.getElementById('clubId');
+            data.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = c.nombre;
+                sel.appendChild(opt);
+            });
+        }
+
+        async function cargarDatosJugador(id) {
+            try {
+                const [resJ, resC] = await Promise.all([fetch(`/api/jugadores/${id}`), fetch('/api/clubes')]);
+                if (!resJ.ok) throw new Error('Jugador no encontrado');
+                const j = await resJ.json();
+                const clubes = await resC.json();
+
+                document.getElementById('nombre').value = j.nombre;
+                document.getElementById('apellido').value = j.apellido;
+                document.getElementById('numero').value = j.numero;
+                document.getElementById('posicion').value = j.posicion;
+
+                // Buscar club asignado actualmente
+                clubes.forEach(c => {
+                    if (c.jugadores && c.jugadores.some(jug => jug.id === Number(id))) {
+                        document.getElementById('clubId').value = c.id;
+                        clubIdOriginal = c.id;
+                    }
+                });
+            } catch (err) {
+                document.getElementById('alertaError').innerText = err.message;
+                document.getElementById('alertaError').classList.remove('d-none');
+            }
+        }
+
+        async function guardarJugador(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const payload = {
+                nombre: document.getElementById('nombre').value.trim(),
+                apellido: document.getElementById('apellido').value.trim(),
+                numero: Number(document.getElementById('numero').value),
+                posicion: document.getElementById('posicion').value
+            };
+
+            const esEdicion = idEdicion && idEdicion !== 'null';
+            const url = esEdicion ? `/api/jugadores/${idEdicion}` : '/api/jugadores';
+            const method = esEdicion ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const jugadorGuardado = await res.json();
+                    const nuevoClubId = document.getElementById('clubId').value;
+
+                    // Si cambió el club, desasociar del anterior y asociar al nuevo vía REST
+                    if (clubIdOriginal && clubIdOriginal != nuevoClubId) {
+                        await fetch(`/api/clubes/${clubIdOriginal}/jugadores/${jugadorGuardado.id}`, { method: 'DELETE' });
+                    }
+                    if (nuevoClubId) {
+                        await fetch(`/api/clubes/${nuevoClubId}/jugadores/${jugadorGuardado.id}`, { method: 'POST' });
+                    }
+
+                    window.location.href = '/jugadores';
+                } else {
+                    const err = await res.json();
+                    document.getElementById('alertaError').innerText = 'Error API REST: ' + (err.mensaje || 'Error al guardar');
+                    document.getElementById('alertaError').classList.remove('d-none');
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                document.getElementById('alertaError').innerText = 'Error de conexión: ' + err.message;
+                document.getElementById('alertaError').classList.remove('d-none');
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

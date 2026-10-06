@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutbolManager - Panel MongoDB & API REST</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="bg-light">
+
+    <!-- Barra de Navegación -->
+    <div th:replace="~{fragments/navbar :: navbar('home')}"></div>
+
+    <main class="container my-5">
+        <!-- Hero Banner -->
+        <div class="p-5 mb-5 rounded-4 text-white shadow" style="background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <span class="badge bg-light text-dark px-3 py-2 fs-6 mb-3 fw-bold">Módulo 2: Spring Data MongoDB &amp; API REST</span>
+                    <h1 class="display-5 fw-bold mb-3">Gestión de Fútbol con Persistencia NoSQL</h1>
+                    <p class="lead mb-4">
+                        Interfaz web integrada que consume y persiste la información a través de la <strong>API REST (`/api/...`)</strong> en <strong>MongoDB Atlas</strong> utilizando modelos con <code>@DocumentReference</code>.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a th:href="@{/clubes/nuevo}" class="btn btn-warning btn-lg fw-bold px-4">
+                            <i class="bi bi-plus-circle me-1"></i> Registrar Club (vía REST)
+                        </a>
+                        <a th:href="@{/clubes}" class="btn btn-outline-light btn-lg px-4">
+                            <i class="bi bi-eye me-1"></i> Explorar Directorio
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-center d-none d-lg-block">
+                    <i class="bi bi-database-check" style="font-size: 8rem; opacity: 0.35;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjetas de Estadísticas Cargadas en Tiempo Real vía REST -->
+        <h4 class="fw-bold mb-4 text-secondary d-flex align-items-center gap-2">
+            <i class="bi bi-grid-fill text-success"></i> Métricas en Vivo desde la API REST (`GET /api/...`)
+        </h4>
+        <div class="row g-4 mb-5">
+            <div class="col-md-6 col-lg">
+                <div class="card h-100 border-0 shadow-sm rounded-3 border-start border-success border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted fw-bold text-uppercase fs-7">Clubes</span>
+                            <div class="p-2 bg-success bg-opacity-10 text-success rounded-circle">
+                                <i class="bi bi-shield-shaded fs-4"></i>
+                            </div>
+                        </div>
+                        <h2 class="fw-bold mb-2" id="countClubes"><span class="spinner-border spinner-border-sm text-secondary"></span></h2>
+                        <a th:href="@{/clubes}" class="btn btn-sm btn-outline-success w-100 mt-2">Administrar</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg">
+                <div class="card h-100 border-0 shadow-sm rounded-3 border-start border-primary border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted fw-bold text-uppercase fs-7">Entrenadores</span>
+                            <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-circle">
+                                <i class="bi bi-person-badge fs-4"></i>
+                            </div>
+                        </div>
+                        <h2 class="fw-bold mb-2" id="countEntrenadores"><span class="spinner-border spinner-border-sm text-secondary"></span></h2>
+                        <a th:href="@{/entrenadores}" class="btn btn-sm btn-outline-primary w-100 mt-2">Administrar</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg">
+                <div class="card h-100 border-0 shadow-sm rounded-3 border-start border-info border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted fw-bold text-uppercase fs-7">Jugadores</span>
+                            <div class="p-2 bg-info bg-opacity-10 text-info rounded-circle">
+                                <i class="bi bi-people fs-4"></i>
+                            </div>
+                        </div>
+                        <h2 class="fw-bold mb-2" id="countJugadores"><span class="spinner-border spinner-border-sm text-secondary"></span></h2>
+                        <a th:href="@{/jugadores}" class="btn btn-sm btn-outline-info w-100 mt-2">Administrar</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg">
+                <div class="card h-100 border-0 shadow-sm rounded-3 border-start border-danger border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted fw-bold text-uppercase fs-7">Asociaciones</span>
+                            <div class="p-2 bg-danger bg-opacity-10 text-danger rounded-circle">
+                                <i class="bi bi-building fs-4"></i>
+                            </div>
+                        </div>
+                        <h2 class="fw-bold mb-2" id="countAsociaciones"><span class="spinner-border spinner-border-sm text-secondary"></span></h2>
+                        <a th:href="@{/asociaciones}" class="btn btn-sm btn-outline-danger w-100 mt-2">Administrar</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg">
+                <div class="card h-100 border-0 shadow-sm rounded-3 border-start border-warning border-4">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted fw-bold text-uppercase fs-7">Competiciones</span>
+                            <div class="p-2 bg-warning bg-opacity-10 text-warning rounded-circle">
+                                <i class="bi bi-trophy fs-4"></i>
+                            </div>
+                        </div>
+                        <h2 class="fw-bold mb-2" id="countCompeticiones"><span class="spinner-border spinner-border-sm text-secondary"></span></h2>
+                        <a th:href="@{/competiciones}" class="btn btn-sm btn-outline-warning w-100 mt-2">Administrar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista previa de Clubes en MongoDB -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-list-check me-2 text-success"></i>Clubes en MongoDB Atlas (Consultados vía <code>GET /api/clubes</code>)</h5>
+                <a th:href="@{/clubes/nuevo}" class="btn btn-success btn-sm"><i class="bi bi-plus-lg me-1"></i>Nuevo Club</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="tablaClubes">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="ps-4">ID</th>
+                                <th>Club</th>
+                                <th>Entrenador (@DocumentReference)</th>
+                                <th>Asociación (@DocumentReference)</th>
+                                <th>Jugadores (@DocumentReference)</th>
+                                <th>Competiciones (@DocumentReference)</th>
+                                <th class="text-end pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyClubes">
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    <span class="spinner-border spinner-border-sm me-2 text-success"></span>Cargando clubes desde la API REST...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white border-top py-4 mt-5 text-center text-muted">
+        <div class="container">
+            <p class="mb-0">Sistema de Gestión de Fútbol &copy; 2026 - Módulo 2: Spring Data MongoDB &amp; API REST</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cargar contadores vía REST
+            fetch('/api/clubes').then(r => r.json()).then(data => {
+                document.getElementById('countClubes').innerText = data.length;
+                renderClubes(data);
+            }).catch(() => document.getElementById('countClubes').innerText = '0');
+
+            fetch('/api/entrenadores').then(r => r.json()).then(data => {
+                document.getElementById('countEntrenadores').innerText = data.length;
+            }).catch(() => document.getElementById('countEntrenadores').innerText = '0');
+
+            fetch('/api/jugadores').then(r => r.json()).then(data => {
+                document.getElementById('countJugadores').innerText = data.length;
+            }).catch(() => document.getElementById('countJugadores').innerText = '0');
+
+            fetch('/api/asociaciones').then(r => r.json()).then(data => {
+                document.getElementById('countAsociaciones').innerText = data.length;
+            }).catch(() => document.getElementById('countAsociaciones').innerText = '0');
+
+            fetch('/api/competiciones').then(r => r.json()).then(data => {
+                document.getElementById('countCompeticiones').innerText = data.length;
+            }).catch(() => document.getElementById('countCompeticiones').innerText = '0');
+        });
+
+        function renderClubes(clubes) {
+            const tbody = document.getElementById('tbodyClubes');
+            if (!clubes || clubes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No hay clubes registrados en MongoDB.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = clubes.map(c => `
+                <tr>
+                    <td class="ps-4 fw-bold">${c.id}</td>
+                    <td class="fw-bold text-success">${c.nombre}</td>
+                    <td>
+                        ${c.entrenador ? `<span class="badge bg-success">${c.entrenador.nombreCompleto || (c.entrenador.nombre + ' ' + c.entrenador.apellido)}</span>` : '<span class="badge bg-secondary">Sin Asignar</span>'}
+                    </td>
+                    <td>
+                        ${c.asociacion ? `<span class="badge bg-danger">${c.asociacion.siglas || c.asociacion.nombre}</span>` : '<span class="badge bg-secondary">Sin Asignar</span>'}
+                    </td>
+                    <td>
+                        <span class="badge bg-info text-dark">${(c.jugadores ? c.jugadores.length : 0)} registrados</span>
+                    </td>
+                    <td>
+                        ${(c.competiciones && c.competiciones.length > 0) ? c.competiciones.map(comp => `<span class="badge bg-warning text-dark me-1">${comp.nombre}</span>`).join('') : '<span class="text-muted small">Ninguna</span>'}
+                    </td>
+                    <td class="text-end pe-4">
+                        <a href="/clubes/editar/${c.id}" class="btn btn-sm btn-outline-primary me-1"><i class="bi bi-pencil"></i></a>
+                        <button onclick="eliminarClub(${c.id})" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function eliminarClub(id) {
+            if (confirm(`¿Seguro que deseas eliminar el club #${id} mediante DELETE /api/clubes/${id}?`)) {
+                const res = await fetch(`/api/clubes/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    location.reload();
+                } else {
+                    alert('Error al eliminar mediante API REST');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

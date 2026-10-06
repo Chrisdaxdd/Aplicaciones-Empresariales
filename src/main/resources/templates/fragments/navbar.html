@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+<nav th:fragment="navbar(activeTab)" class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm py-3">
+    <div class="container">
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" th:href="@{/}">
+            <span class="fs-4">🍃</span>
+            <span class="text-white">Futbol<span class="text-success">Manager</span></span>
+            <span class="badge bg-success text-white ms-1 fs-6">MongoDB &amp; API REST</span>
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-1">
+                <li class="nav-item">
+                    <a class="nav-link px-3" th:classappend="${activeTab == 'home' ? 'active fw-bold text-success' : ''}" th:href="@{/}">
+                        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3" th:classappend="${activeTab == 'clubes' ? 'active fw-bold text-success' : ''}" th:href="@{/clubes}">
+                        <i class="bi bi-shield-shaded me-1"></i> Clubes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3" th:classappend="${activeTab == 'entrenadores' ? 'active fw-bold text-success' : ''}" th:href="@{/entrenadores}">
+                        <i class="bi bi-person-badge me-1"></i> Entrenadores
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3" th:classappend="${activeTab == 'jugadores' ? 'active fw-bold text-success' : ''}" th:href="@{/jugadores}">
+                        <i class="bi bi-people me-1"></i> Jugadores
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3" th:classappend="${activeTab == 'asociaciones' ? 'active fw-bold text-success' : ''}" th:href="@{/asociaciones}">
+                        <i class="bi bi-building me-1"></i> Asociaciones
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link px-3" th:classappend="${activeTab == 'competiciones' ? 'active fw-bold text-success' : ''}" th:href="@{/competiciones}">
+                        <i class="bi bi-trophy me-1"></i> Competiciones
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+</body>
+</html>

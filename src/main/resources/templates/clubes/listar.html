@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutbolManager - Clubes (MongoDB REST)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="bg-light">
+
+    <!-- Barra de Navegación -->
+    <div th:replace="~{fragments/navbar :: navbar('clubes')}"></div>
+
+    <main class="container my-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1"><i class="bi bi-shield-shaded text-success me-2"></i>Gestión de Clubes (MongoDB NoSQL)</h2>
+                <p class="text-muted mb-0">Listado consumido mediante <code>GET /api/clubes</code> con referencias <code>@DocumentReference</code></p>
+            </div>
+            <a th:href="@{/clubes/nuevo}" class="btn btn-success px-3 shadow-sm">
+                <i class="bi bi-plus-circle me-1"></i> Nuevo Club
+            </a>
+        </div>
+
+        <div id="alerta" class="alert alert-dismissible fade show shadow-sm d-none" role="alert">
+            <span id="alertaTexto"></span>
+            <button type="button" class="btn-close" onclick="document.getElementById('alerta').classList.add('d-none')"></button>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="ps-4">ID</th>
+                                <th>Nombre del Club</th>
+                                <th>Entrenador (@DocumentReference)</th>
+                                <th>Asociación (@DocumentReference)</th>
+                                <th>Plantel de Jugadores</th>
+                                <th>Competiciones Activas</th>
+                                <th class="text-end pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyClubes">
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <span class="spinner-border spinner-border-sm me-2 text-success"></span>Cargando clubes desde la API REST...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', cargarClubes);
+
+        async function cargarClubes() {
+            try {
+                const res = await fetch('/api/clubes');
+                const clubes = await res.json();
+                const tbody = document.getElementById('tbodyClubes');
+
+                if (!clubes || clubes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>No hay clubes en MongoDB. Haz clic en "Nuevo Club" para crear uno vía API REST.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = clubes.map(c => `
+                    <tr>
+                        <td class="ps-4 fw-bold">${c.id}</td>
+                        <td class="fw-bold text-dark fs-6">${c.nombre}</td>
+                        <td>
+                            ${c.entrenador ? `
+                                <span class="badge bg-success p-2">
+                                    <i class="bi bi-person-fill me-1"></i>
+                                    ${c.entrenador.nombreCompleto || (c.entrenador.nombre + ' ' + c.entrenador.apellido)}
+                                </span>
+                                <span class="d-block text-muted small mt-1">${c.entrenador.nacionalidad || ''}, ${c.entrenador.edad || ''} años</span>
+                            ` : '<span class="badge bg-secondary p-2">Sin Entrenador</span>'}
+                        </td>
+                        <td>
+                            ${c.asociacion ? `
+                                <span class="badge bg-danger p-2">${c.asociacion.siglas || 'ASOC'}</span>
+                                <span class="d-block text-muted small mt-1">${c.asociacion.nombre || ''}</span>
+                            ` : '<span class="badge bg-secondary p-2">Sin Asociación</span>'}
+                        </td>
+                        <td>
+                            ${(c.jugadores && c.jugadores.length > 0) ? `
+                                <span class="badge bg-info text-dark mb-1"><i class="bi bi-people-fill me-1"></i>${c.jugadores.length} futbolistas</span>
+                                <div class="small text-muted">
+                                    ${c.jugadores.slice(0, 3).map(j => `<span class="badge bg-light text-dark border me-1">#${j.numero} ${j.apellido}</span>`).join('')}
+                                    ${c.jugadores.length > 3 ? `+${c.jugadores.length - 3} más` : ''}
+                                </div>
+                            ` : '<span class="badge bg-light text-muted border">Sin jugadores</span>'}
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                ${(c.competiciones && c.competiciones.length > 0) ? c.competiciones.map(comp => `
+                                    <span class="badge bg-warning text-dark">${comp.nombre}</span>
+                                `).join('') : '<span class="text-muted small">Sin torneos</span>'}
+                            </div>
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group">
+                                <a href="/clubes/editar/${c.id}" class="btn btn-sm btn-outline-primary" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                <button onclick="eliminarClub(${c.id})" class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                document.getElementById('tbodyClubes').innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Error al conectar con la API REST: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function eliminarClub(id) {
+            if (confirm(`¿Seguro que deseas eliminar este club (#${id}) mediante la API REST (DELETE /api/clubes/${id})?`)) {
+                try {
+                    const res = await fetch(`/api/clubes/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        mostrarAlerta('Club eliminado exitosamente mediante API REST', 'success');
+                        cargarClubes();
+                    } else {
+                        mostrarAlerta('Error al eliminar club en la API REST', 'danger');
+                    }
+                } catch (e) {
+                    mostrarAlerta('Error de red: ' + e.message, 'danger');
+                }
+            }
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const alerta = document.getElementById('alerta');
+            alerta.className = `alert alert-${tipo} alert-dismissible fade show shadow-sm`;
+            document.getElementById('alertaTexto').innerText = mensaje;
+            alerta.classList.remove('d-none');
+        }
+    </script>
+</body>
+</html>

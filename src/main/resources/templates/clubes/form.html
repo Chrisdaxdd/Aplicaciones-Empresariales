@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FutbolManager - Formulario de Club (REST API)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body class="bg-light">
+
+    <!-- Barra de Navegación -->
+    <div th:replace="~{fragments/navbar :: navbar('clubes')}"></div>
+
+    <main class="container my-5" style="max-width: 800px;">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-success text-white py-3">
+                <h4 class="mb-0 fw-bold">
+                    <i class="bi bi-shield-plus me-2"></i>
+                    <span id="formTitulo">Registrar Club (Guardado mediante API REST)</span>
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <div id="alertaError" class="alert alert-danger d-none" role="alert"></div>
+
+                <form id="formClub" onsubmit="guardarClub(event)">
+                    <input type="hidden" id="clubId" th:value="${clubId}" />
+
+                    <!-- Nombre del Club -->
+                    <div class="mb-4">
+                        <label for="nombre" class="form-label fw-bold">Nombre del Club <span class="text-danger">*</span></label>
+                        <input type="text" id="nombre" class="form-control form-control-lg" required
+                               placeholder="Ej. Real Madrid, Millonarios FC, Boca Juniors" />
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <!-- Relación @DocumentReference: Entrenador -->
+                        <div class="col-md-6">
+                            <label for="entrenadorId" class="form-label fw-bold">
+                                <i class="bi bi-person-badge text-success me-1"></i> Entrenador (@DocumentReference)
+                            </label>
+                            <select id="entrenadorId" class="form-select">
+                                <option value="">-- Sin Entrenador Asignado --</option>
+                            </select>
+                            <div class="form-text">Asociación no relacional referenciada por ID.</div>
+                        </div>
+
+                        <!-- Relación @DocumentReference: Asociación -->
+                        <div class="col-md-6">
+                            <label for="asociacionId" class="form-label fw-bold">
+                                <i class="bi bi-building text-danger me-1"></i> Asociación (@DocumentReference)
+                            </label>
+                            <select id="asociacionId" class="form-select">
+                                <option value="">-- Sin Asociación Afiliada --</option>
+                            </select>
+                            <div class="form-text">Referencia a documento en colección asociaciones.</div>
+                        </div>
+                    </div>
+
+                    <!-- Relación @DocumentReference: Competiciones -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold d-block">
+                            <i class="bi bi-trophy text-warning me-1"></i> Competiciones (@DocumentReference en Lista)
+                        </label>
+                        <div class="border rounded p-3 bg-white" id="contenedorCompeticiones">
+                            <div class="text-muted small">Cargando competiciones desde la API REST...</div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-flex justify-content-between pt-3 border-top">
+                        <a th:href="@{/clubes}" class="btn btn-outline-secondary px-4">
+                            <i class="bi bi-arrow-left me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" id="btnGuardar" class="btn btn-success px-4 fw-bold">
+                            <i class="bi bi-cloud-arrow-up me-1"></i> <span id="btnTexto">Guardar vía POST /api/clubes</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const idEdicion = document.getElementById('clubId').value;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await Promise.all([cargarEntrenadores(), cargarAsociaciones(), cargarCompeticiones()]);
+
+            if (idEdicion && idEdicion !== 'null') {
+                document.getElementById('formTitulo').innerText = `Editar Club #${idEdicion} (vía PUT /api/clubes/${idEdicion})`;
+                document.getElementById('btnTexto').innerText = `Actualizar vía PUT /api/clubes/${idEdicion}`;
+                cargarDatosClub(idEdicion);
+            }
+        });
+
+        async function cargarEntrenadores() {
+            const res = await fetch('/api/entrenadores');
+            const data = await res.json();
+            const sel = document.getElementById('entrenadorId');
+            data.forEach(ent => {
+                const opt = document.createElement('option');
+                opt.value = ent.id;
+                opt.innerText = `${ent.nombre} ${ent.apellido} (${ent.nacionalidad})`;
+                sel.appendChild(opt);
+            });
+        }
+
+        async function cargarAsociaciones() {
+            const res = await fetch('/api/asociaciones');
+            const data = await res.json();
+            const sel = document.getElementById('asociacionId');
+            data.forEach(asc => {
+                const opt = document.createElement('option');
+                opt.value = asc.id;
+                opt.innerText = `${asc.siglas} - ${asc.nombre} (${asc.pais})`;
+                sel.appendChild(opt);
+            });
+        }
+
+        async function cargarCompeticiones() {
+            const res = await fetch('/api/competiciones');
+            const data = await res.json();
+            const cont = document.getElementById('contenedorCompeticiones');
+            if (data.length === 0) {
+                cont.innerHTML = '<span class="text-muted small">No hay competiciones registradas.</span>';
+                return;
+            }
+            cont.innerHTML = `
+                <div class="row g-2">
+                    ${data.map(c => `
+                        <div class="col-md-6">
+                            <div class="form-check p-2 border rounded bg-light">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" name="competicionesCheck" value="${c.id}" id="comp_${c.id}">
+                                <label class="form-check-label fw-semibold" for="comp_${c.id}">
+                                    ${c.nombre}
+                                    <span class="d-block small text-muted">Premio: $${Number(c.montoPremio).toLocaleString()} USD</span>
+                                </label>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function cargarDatosClub(id) {
+            try {
+                const res = await fetch(`/api/clubes/${id}`);
+                if (!res.ok) throw new Error('Club no encontrado');
+                const club = await res.json();
+                document.getElementById('nombre').value = club.nombre;
+
+                if (club.entrenador && club.entrenador.id) {
+                    document.getElementById('entrenadorId').value = club.entrenador.id;
+                }
+                if (club.asociacion && club.asociacion.id) {
+                    document.getElementById('asociacionId').value = club.asociacion.id;
+                }
+                if (club.competiciones && club.competiciones.length > 0) {
+                    const ids = club.competiciones.map(c => c.id);
+                    document.querySelectorAll('input[name="competicionesCheck"]').forEach(cb => {
+                        if (ids.includes(Number(cb.value))) {
+                            cb.checked = true;
+                        }
+                    });
+                }
+            } catch (err) {
+                document.getElementById('alertaError').innerText = err.message;
+                document.getElementById('alertaError').classList.remove('d-none');
+            }
+        }
+
+        async function guardarClub(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnGuardar');
+            btn.disabled = true;
+
+            const nombre = document.getElementById('nombre').value.trim();
+            const entrenadorId = document.getElementById('entrenadorId').value;
+            const asociacionId = document.getElementById('asociacionId').value;
+
+            const competiciones = Array.from(document.querySelectorAll('input[name="competicionesCheck"]:checked'))
+                .map(cb => ({ id: Number(cb.value) }));
+
+            const payload = {
+                nombre: nombre,
+                entrenador: entrenadorId ? { id: Number(entrenadorId) } : null,
+                asociacion: asociacionId ? { id: Number(asociacionId) } : null,
+                competiciones: competiciones
+            };
+
+            const esEdicion = idEdicion && idEdicion !== 'null';
+            const url = esEdicion ? `/api/clubes/${idEdicion}` : '/api/clubes';
+            const method = esEdicion ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    window.location.href = '/clubes';
+                } else {
+                    const err = await res.json();
+                    document.getElementById('alertaError').innerText = 'Error API REST: ' + (err.mensaje || 'No se pudo guardar');
+                    document.getElementById('alertaError').classList.remove('d-none');
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                document.getElementById('alertaError').innerText = 'Error de conexión: ' + err.message;
+                document.getElementById('alertaError').classList.remove('d-none');
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

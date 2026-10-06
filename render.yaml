@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: api-rest-futbol-mongodb
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    autoDeploy: true
+    healthCheckPath: /api/clubes
